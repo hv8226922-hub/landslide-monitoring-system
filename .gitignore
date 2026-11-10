@@ -1,0 +1,14 @@
+node_modules/
+.env
+.env.*
+!.env.example
+dist/
+build/
+coverage/
+__pycache__/
+*.py[cod]
+.venv/
+ml-service/models/*
+!ml-service/models/.gitkeep
+server/uploads/*
+!server/uploads/.gitkeep
