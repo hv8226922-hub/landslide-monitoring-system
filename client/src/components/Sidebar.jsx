@@ -1,24 +1,38 @@
+import { NavLink } from 'react-router-dom'
 import {
+  Activity,
+  Bell,
+  CloudRain,
+  FileText,
   LayoutDashboard,
   Map,
   Mountain,
   Radio,
+  Settings,
   ShieldAlert,
   Users,
 } from 'lucide-react'
 
 const navItems = [
-  { icon: LayoutDashboard, label: 'Overview', active: true },
-  { icon: Map, label: 'Risk map' },
-  { icon: ShieldAlert, label: 'Field reports', count: '12' },
-  { icon: Radio, label: 'Sensor network' },
-  { icon: Users, label: 'Communities' },
+  { icon: LayoutDashboard, label: 'Overview', to: '/admin/dashboard' },
+  { icon: Map, label: 'Risk map', to: '/admin/risk-map' },
+  { icon: Activity, label: 'Predictions', to: '/admin/predictions' },
+  { icon: CloudRain, label: 'Weather', to: '/admin/weather' },
+  { icon: Mountain, label: 'Landslides', to: '/admin/landslides' },
+  { icon: Map, label: 'Roads', to: '/admin/roads' },
+  { icon: Users, label: 'Villages', to: '/admin/villages' },
+  { icon: Radio, label: 'Infrastructure', to: '/admin/infrastructure' },
+  { icon: FileText, label: 'Field reports', to: '/admin/reports', count: '12' },
+  { icon: Bell, label: 'Alerts', to: '/admin/alerts', count: '04' },
+  { icon: ShieldAlert, label: 'Emergency', to: '/admin/emergency' },
+  { icon: Activity, label: 'Analytics', to: '/admin/analytics' },
+  { icon: Settings, label: 'Settings', to: '/admin/settings' },
 ]
 
 function Sidebar() {
   return (
     <aside className="sidebar">
-      <a className="brand" href="#overview" aria-label="TerraWatch home">
+      <NavLink className="brand" to="/admin/dashboard" aria-label="TerraWatch home">
         <span className="brand-mark">
           <Mountain size={21} strokeWidth={2.4} />
         </span>
@@ -27,21 +41,23 @@ function Sidebar() {
           <strong>TerraWatch</strong>
           <small>NER Risk Intelligence</small>
         </span>
-      </a>
+      </NavLink>
 
       <div className="workspace-label">WORKSPACE</div>
 
       <nav className="side-nav" aria-label="Main navigation">
-        {navItems.map(({ icon: Icon, label, active, count }) => (
-          <a
-            className={`nav-link ${active ? 'active' : ''}`}
-            href={`#${label.toLowerCase().replaceAll(' ', '-')}`}
+        {navItems.map(({ icon: Icon, label, to, count }) => (
+          <NavLink
+            className={({ isActive }) =>
+              `nav-link ${isActive ? 'active' : ''}`
+            }
+            to={to}
             key={label}
           >
             <Icon size={18} />
             <span>{label}</span>
             {count && <b>{count}</b>}
-          </a>
+          </NavLink>
         ))}
       </nav>
 

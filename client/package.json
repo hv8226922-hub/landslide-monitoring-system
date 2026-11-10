@@ -10,13 +10,14 @@
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
-    "vite": "latest",
+    "leaflet": "latest",
+    "lucide-react": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "lucide-react": "latest",
+    "react-leaflet": "latest",
+    "react-router-dom": "^7.18.5",
     "recharts": "latest",
-    "leaflet": "latest",
-    "react-leaflet": "latest"
+    "vite": "latest"
   },
   "devDependencies": {
     "@tailwindcss/vite": "latest",

@@ -1,0 +1,44 @@
+CREATE TABLE IF NOT EXISTS reports (
+  id SERIAL PRIMARY KEY,
+  reporter_name VARCHAR(100),
+  location VARCHAR(255) NOT NULL,
+  latitude DECIMAL(9, 6),
+  longitude DECIMAL(9, 6),
+  incident_type VARCHAR(50) NOT NULL DEFAULT 'Other',
+  severity VARCHAR(20) NOT NULL DEFAULT 'Moderate',
+  description TEXT NOT NULL,
+  photo_url TEXT,
+  status VARCHAR(30) NOT NULL DEFAULT 'New',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS weather_records (
+  id SERIAL PRIMARY KEY,
+  district VARCHAR(120) NOT NULL,
+  rainfall_24h DECIMAL(8, 2) NOT NULL,
+  humidity DECIMAL(5, 2),
+  temperature DECIMAL(5, 2),
+  recorded_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS risk_predictions (
+  id SERIAL PRIMARY KEY,
+  district VARCHAR(120) NOT NULL,
+  probability DECIMAL(5, 4) NOT NULL,
+  risk_level VARCHAR(20) NOT NULL,
+  rainfall_24h DECIMAL(8, 2),
+  soil_moisture DECIMAL(5, 2),
+  slope DECIMAL(5, 2),
+  predicted_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS alerts (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(200) NOT NULL,
+  district VARCHAR(120) NOT NULL,
+  risk_level VARCHAR(20) NOT NULL,
+  message TEXT NOT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'Active',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

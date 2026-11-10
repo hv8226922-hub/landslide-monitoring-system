@@ -1,12 +1,55 @@
+
 import { useState } from 'react'
 
-function ReportForm() {
+function ReportForm({ onReportSubmitted }) {
   const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
-    setSubmitted(true)
-    event.currentTarget.reset()
+
+    const form = event.currentTarget
+    const formData = new FormData(form)
+
+    const report = {
+      location: formData.get('location')?.trim(),
+      severity: formData.get('severity'),
+      description: formData.get('description')?.trim(),
+    }
+
+    setSubmitted(false)
+    setError('')
+    setLoading(true)
+
+    try {
+      const response = await fetch('http://localhost:5000/api/reports', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(report),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Could not submit report')
+      }
+
+      setSubmitted(true)
+      form.reset()
+
+      // Refresh dashboard reports after successful submission
+      if (onReportSubmitted) {
+        await onReportSubmitted()
+      }
+
+    } catch (error) {
+      setError(error.message || 'Something went wrong')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -19,6 +62,12 @@ function ReportForm() {
       {submitted && (
         <p className="report-success">
           Report received. Thank you for sharing this information.
+        </p>
+      )}
+
+      {error && (
+        <p className="report-error">
+          {error}
         </p>
       )}
 
@@ -53,11 +102,13 @@ function ReportForm() {
         </label>
 
         <label>
-          Add a photo (optional)
-          <input name="photo" type="file" accept="image/*" />
+          Add a photo (coming soon)
+          <input name="photo" type="file" accept="image/*" disabled />
         </label>
 
-        <button type="submit">Submit report</button>
+        <button type="submit" disabled={loading}>
+          {loading ? 'Submitting...' : 'Submit report'}
+        </button>
       </form>
     </div>
   )

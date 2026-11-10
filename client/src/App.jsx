@@ -1,94 +1,79 @@
-import Sidebar from './components/sidebar.jsx'
-import MetricCard from './components/MetricCard.jsx'
-import LocationCard from './components/LocationCard.jsx'
-import AlertCard from './components/AlertCard.jsx'
-import RiskMap from './components/RiskMap.jsx'
-import RainfallChart from './components/RainfallChart.jsx'
-import ReportForm from './components/ReportForm.jsx'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import Login from './pages/auth/Login.jsx'
+import AdminLayout from './layouts/AdminLayout.jsx'
+import CitizenLayout from './layouts/CitizenLayout.jsx'
+import OfficerLayout from './layouts/OfficerLayout.jsx'
 
-const metrics = [
-  { title: 'Active alerts', value: '04', note: '2 new alerts since yesterday' },
-  { title: 'High-risk zones', value: '12', note: 'Across 3 monitored districts' },
-  { title: 'Sensors online', value: '18 / 20', note: '90% network uptime' },
-  {
-  title: 'Rainfall (24h)', value: '96.4 mm', note: '18% more than previous day'},
-]
+import Dashboard from './pages/admin/Dashboard.jsx'
+import RiskMapPage from './pages/admin/RiskMap.jsx'
+import Predictions from './pages/admin/Predictions.jsx'
+import Weather from './pages/admin/Weather.jsx'
+import Landslides from './pages/admin/Landslides.jsx'
+import Roads from './pages/admin/Roads.jsx'
+import Villages from './pages/admin/Villages.jsx'
+import Infrastructure from './pages/admin/Infrastructure.jsx'
+import Reports from './pages/admin/Reports.jsx'
+import Alerts from './pages/admin/Alerts.jsx'
+import Emergency from './pages/admin/Emergency.jsx'
+import Analytics from './pages/admin/Analytics.jsx'
+import Settings from './pages/admin/Settings.jsx'
 
-const locations = [
-  { district: 'Dima Hasao', state: 'Assam', risk: 'High', score: 82 },
-  { district: 'East Khasi Hills', state: 'Meghalaya', risk: 'Moderate', score: 56 },
-  { district: 'Kohima', state: 'Nagaland', risk: 'Low', score: 24 },
-]
+import CitizenHome from './pages/citizen/Home.jsx'
+import CitizenRiskMap from './pages/citizen/RiskMap.jsx'
+import ReportIncident from './pages/citizen/ReportIncident.jsx'
+import CitizenAlerts from './pages/citizen/Alerts.jsx'
+import Safety from './pages/citizen/Safety.jsx'
+import History from './pages/citizen/History.jsx'
 
-const alerts = [
-  {
-    title: 'Heavy rainfall threshold crossed',
-    location: 'Dima Hasao, Assam',
-    message: 'Rainfall is above the watch level. Field inspection recommended.',
-    time: '12 min ago',
-    level: 'High',
-  },
-  {
-    title: 'New field report received',
-    location: 'East Khasi Hills, Meghalaya',
-    message: 'A resident reported a road crack near the hillside.',
-    time: '38 min ago',
-    level: 'Moderate',
-  },
-]
+import OfficerDashboard from './pages/officer/Dashboard.jsx'
+import Incidents from './pages/officer/Incidents.jsx'
+import IncidentDetails from './pages/officer/IncidentDetails.jsx'
+import OfficerMap from './pages/officer/Map.jsx'
+import Offline from './pages/officer/Offline.jsx'
 
 function App() {
   return (
-    <div className="app-shell">
-      <Sidebar />
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<Login />} />
 
-      <main className="main-content" id="overview">
-        <h1>TerraWatch Dashboard</h1>
-        <p>Landslide risk monitoring for Northeast India</p>
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="risk-map" element={<RiskMapPage />} />
+          <Route path="predictions" element={<Predictions />} />
+          <Route path="weather" element={<Weather />} />
+          <Route path="landslides" element={<Landslides />} />
+          <Route path="roads" element={<Roads />} />
+          <Route path="villages" element={<Villages />} />
+          <Route path="infrastructure" element={<Infrastructure />} />
+          <Route path="reports" element={<Reports />} />
+          <Route path="alerts" element={<Alerts />} />
+          <Route path="emergency" element={<Emergency />} />
+          <Route path="analytics" element={<Analytics />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
 
-        <section className="metrics-grid" id='sensor-network'>
-          {metrics.map((metric) => (
-            <MetricCard
-              key={metric.title}
-              title={metric.title}
-              value={metric.value}
-              note={metric.note}
-            />
-          ))}
-        </section>
+        <Route path="/citizen" element={<CitizenLayout />}>
+          <Route path="home" element={<CitizenHome />} />
+          <Route path="risk-map" element={<CitizenRiskMap />} />
+          <Route path="report" element={<ReportIncident />} />
+          <Route path="alerts" element={<CitizenAlerts />} />
+          <Route path="safety" element={<Safety />} />
+          <Route path="history" element={<History />} />
+        </Route>
 
-<section id='risk-map'>
-  <h2>Regional risk map</h2>
-  <RiskMap />
-</section> 
+        <Route path="/officer" element={<OfficerLayout />}>
+          <Route path="dashboard" element={<OfficerDashboard />} />
+          <Route path="incidents" element={<Incidents />} />
+          <Route path="incidents/:id" element={<IncidentDetails />} />
+          <Route path="map" element={<OfficerMap />} />
+          <Route path="offline" element={<Offline />} />
+        </Route>
 
-<section>
-  <RainfallChart />
-</section>
-
-        <section>
-          <h2>Priority locations</h2>
-
-          {locations.map((location) => (
-            <LocationCard key={location.district} {...location} />
-          ))}
-        </section>
-
-        <section id='field-reports'>
-  <h2>Recent alerts</h2>
-
-  {alerts.map((alert) => (
-    <AlertCard key={alert.title} {...alert} />
-  ))}
-</section>
-
-<section id='communities'>
-  <h2>Community reporting</h2>
-  <ReportForm />
-</section>
-
-      </main>
-    </div>
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
