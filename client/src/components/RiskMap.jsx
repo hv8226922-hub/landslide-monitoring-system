@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config/api.js'
 
 import { useEffect, useState } from 'react'
 import 'leaflet/dist/leaflet.css'
@@ -9,7 +10,7 @@ import {
   useMap,
 } from 'react-leaflet'
 
-const API_URL = 'http://127.0.0.1:5000/api/risk'
+const API_URL = `${API_BASE_URL}/risk`
 
 const districtCoordinates = {
   'Dima Hasao': [25.35, 93.02],

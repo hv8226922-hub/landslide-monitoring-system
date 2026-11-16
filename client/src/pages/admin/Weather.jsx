@@ -1,8 +1,9 @@
+import { API_BASE_URL } from '../../config/api.js'
 
 import { useCallback, useEffect, useState } from 'react'
 import RainfallChart from '../../components/RainfallChart.jsx'
 
-const API_URL = 'http://127.0.0.1:5000/api/weather'
+const API_URL = `${API_BASE_URL}/weather`
 
 const initialForm = {
   district: '',

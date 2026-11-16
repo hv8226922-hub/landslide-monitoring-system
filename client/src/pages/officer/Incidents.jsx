@@ -1,8 +1,9 @@
+import { API_BASE_URL } from '../../config/api.js'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
-const API_URL = 'http://127.0.0.1:5000/api/reports'
+const API_URL = `${API_BASE_URL}/reports`
 
 function Incidents() {
   const [incidents, setIncidents] = useState([])

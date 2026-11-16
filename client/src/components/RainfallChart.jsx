@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config/api.js'
 
 import { useEffect, useState } from 'react'
 
@@ -11,7 +12,7 @@ import {
   YAxis,
 } from 'recharts'
 
-const API_URL = 'http://127.0.0.1:5000/api/weather'
+const API_URL = `${API_BASE_URL}/weather`
 
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null

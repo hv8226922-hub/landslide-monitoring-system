@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config/api.js'
 
 import { useState } from 'react'
 
@@ -31,7 +32,7 @@ function ReportForm({ onReportSubmitted }) {
       }
 
       const response = await fetch(
-        'http://127.0.0.1:5000/api/reports',
+        `${API_BASE_URL}/reports`,
         {
           method: 'POST',
           headers: {

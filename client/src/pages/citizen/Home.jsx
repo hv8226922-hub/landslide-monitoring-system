@@ -1,9 +1,10 @@
+import { API_BASE_URL } from '../../config/api.js'
 
 import { useEffect, useMemo, useState } from 'react'
 import { Bell, Map as MapIcon, ShieldAlert } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
-const API_URL = 'http://127.0.0.1:5000/api/risk'
+const API_URL = `${API_BASE_URL}/risk`
 const STORAGE_KEY = 'selectedCitizenDistrict'
 
 const riskPriority = {

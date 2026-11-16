@@ -1,8 +1,9 @@
+import { API_BASE_URL } from '../../config/api.js'
 
 import { useEffect, useState } from 'react'
 
-const REPORTS_API = 'http://127.0.0.1:5000/api/reports'
-const OFFICERS_API = 'http://127.0.0.1:5000/api/auth/officers'
+const REPORTS_API = `${API_BASE_URL}/reports`
+const OFFICERS_API = `${API_BASE_URL}/auth/officers`
 
 function Emergency() {
   const [reports, setReports] = useState([])

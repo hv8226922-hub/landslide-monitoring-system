@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../config/api.js'
 
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -9,9 +10,9 @@ import RiskMap from '../../components/RiskMap.jsx'
 import RainfallChart from '../../components/RainfallChart.jsx'
 import ReportForm from '../../components/ReportForm.jsx'
 
-const API_URL = 'http://127.0.0.1:5000/api/reports'
-const RISK_API_URL = 'http://127.0.0.1:5000/api/risk'
-const ALERT_API_URL = 'http://127.0.0.1:5000/api/alerts'
+const API_URL = `${API_BASE_URL}/reports`
+const RISK_API_URL = `${API_BASE_URL}/risk`
+const ALERT_API_URL = `${API_BASE_URL}/alerts`
 
 function getAuthToken() {
   const token = localStorage.getItem('token')
