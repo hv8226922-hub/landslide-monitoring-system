@@ -23,13 +23,24 @@ function ReportForm({ onReportSubmitted }) {
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:5000/api/reports', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(report),
-      })
+      // Get JWT token from localStorage
+      const token = localStorage.getItem('token')
+
+      if (!token) {
+        throw new Error('Please login again to submit a report')
+      }
+
+      const response = await fetch(
+        'http://127.0.0.1:5000/api/reports',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(report),
+        }
+      )
 
       const result = await response.json()
 
@@ -40,7 +51,7 @@ function ReportForm({ onReportSubmitted }) {
       setSubmitted(true)
       form.reset()
 
-      // Refresh dashboard reports after successful submission
+      // Refresh reports after successful submission
       if (onReportSubmitted) {
         await onReportSubmitted()
       }
@@ -103,7 +114,12 @@ function ReportForm({ onReportSubmitted }) {
 
         <label>
           Add a photo (coming soon)
-          <input name="photo" type="file" accept="image/*" disabled />
+          <input
+            name="photo"
+            type="file"
+            accept="image/*"
+            disabled
+          />
         </label>
 
         <button type="submit" disabled={loading}>
@@ -115,3 +131,4 @@ function ReportForm({ onReportSubmitted }) {
 }
 
 export default ReportForm
+

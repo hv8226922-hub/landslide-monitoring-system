@@ -1,13 +1,107 @@
-import { useState } from 'react'
+
+import { useEffect, useState } from 'react'
+
+const API_URL = 'http://127.0.0.1:5000/api/settings'
 
 function Settings() {
-  const [notifications, setNotifications] = useState(true)
-  const [highRiskAlerts, setHighRiskAlerts] = useState(true)
-  const [saved, setSaved] = useState(false)
+  const [settings, setSettings] = useState({
+    notificationsEnabled: true,
+    highRiskAlertsEnabled: true,
+    riskThreshold: 70,
+    dashboardLanguage: 'English',
+  })
 
-  function handleSubmit(event) {
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    async function fetchSettings() {
+      try {
+        const token = localStorage.getItem('token')
+
+        const response = await fetch(API_URL, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        const result = await response.json()
+
+        if (!response.ok) {
+          throw new Error(result.message || 'Failed to load settings')
+        }
+
+        setSettings({
+          notificationsEnabled: result.data.notifications_enabled,
+          highRiskAlertsEnabled: result.data.high_risk_alerts_enabled,
+          riskThreshold: result.data.risk_threshold,
+          dashboardLanguage: result.data.dashboard_language,
+        })
+      } catch (err) {
+        setError(err.message || 'Failed to load settings')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchSettings()
+  }, [])
+
+  function handleChange(event) {
+    const { name, value, type, checked } = event.target
+
+    setSettings((previous) => ({
+      ...previous,
+      [name]: type === 'checkbox'
+        ? checked
+        : name === 'riskThreshold'
+          ? value
+          : value,
+    }))
+
+    setMessage('')
+  }
+
+  async function handleSubmit(event) {
     event.preventDefault()
-    setSaved(true)
+
+    setSaving(true)
+    setError('')
+    setMessage('')
+
+    try {
+      const token = localStorage.getItem('token')
+
+      const response = await fetch(API_URL, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...settings,
+          riskThreshold: Number(settings.riskThreshold),
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to save settings')
+      }
+
+      setMessage('Settings saved successfully.')
+    } catch (err) {
+      setError(err.message || 'Failed to save settings')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return <p>Loading settings...</p>
   }
 
   return (
@@ -27,8 +121,9 @@ function Settings() {
 
             <input
               type="checkbox"
-              checked={notifications}
-              onChange={(event) => setNotifications(event.target.checked)}
+              name="notificationsEnabled"
+              checked={settings.notificationsEnabled}
+              onChange={handleChange}
             />
           </label>
 
@@ -40,8 +135,9 @@ function Settings() {
 
             <input
               type="checkbox"
-              checked={highRiskAlerts}
-              onChange={(event) => setHighRiskAlerts(event.target.checked)}
+              name="highRiskAlertsEnabled"
+              checked={settings.highRiskAlertsEnabled}
+              onChange={handleChange}
             />
           </label>
         </section>
@@ -51,12 +147,24 @@ function Settings() {
 
           <label>
             High-risk threshold score
-            <input type="number" defaultValue="70" min="0" max="100" />
+            <input
+              type="number"
+              name="riskThreshold"
+              value={settings.riskThreshold}
+              onChange={handleChange}
+              min="0"
+              max="100"
+              required
+            />
           </label>
 
           <label>
             Dashboard language
-            <select defaultValue="English">
+            <select
+              name="dashboardLanguage"
+              value={settings.dashboardLanguage}
+              onChange={handleChange}
+            >
               <option>English</option>
               <option>Hindi</option>
               <option>Assamese</option>
@@ -64,9 +172,17 @@ function Settings() {
           </label>
         </section>
 
-        <button type="submit">Save settings</button>
+        <button type="submit" disabled={saving}>
+          {saving ? 'Saving...' : 'Save settings'}
+        </button>
 
-        {saved && <p className="settings-success">Settings saved successfully.</p>}
+        {message && (
+          <p className="settings-success">{message}</p>
+        )}
+
+        {error && (
+          <p className="settings-error">{error}</p>
+        )}
       </form>
     </>
   )

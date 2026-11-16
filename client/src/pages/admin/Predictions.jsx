@@ -1,71 +1,156 @@
-const predictions = [
-  {
-    location: 'Dima Hasao - Zone A',
-    probability: '0.82',
-    risk: 'High',
-    rainfall: '84 mm',
-    soilMoisture: '71%',
-    slope: '31°',
-  },
-  {
-    location: 'East Khasi Hills - Zone B',
-    probability: '0.67',
-    risk: 'High',
-    rainfall: '68 mm',
-    soilMoisture: '63%',
-    slope: '28°',
-  },
-  {
-    location: 'Kohima - Zone C',
-    probability: '0.34',
-    risk: 'Moderate',
-    rainfall: '41 mm',
-    soilMoisture: '49%',
-    slope: '19°',
-  },
-  {
-    location: 'Jorhat - Zone D',
-    probability: '0.12',
-    risk: 'Low',
-    rainfall: '22 mm',
-    soilMoisture: '31%',
-    slope: '11°',
-  },
-]
+
+import { useCallback, useEffect, useState } from 'react'
+
+const API_URL = 'http://127.0.0.1:5000/api/risk'
 
 function Predictions() {
+  const [predictions, setPredictions] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  const fetchPredictions = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError('')
+
+      const token = localStorage.getItem('token')
+
+      if (!token) {
+        throw new Error('Please login again.')
+      }
+
+      const response = await fetch(
+        `${API_URL}?t=${Date.now()}`,
+        {
+          method: 'GET',
+          cache: 'no-store',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Cache-Control': 'no-cache',
+          },
+        }
+      )
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || 'Could not fetch predictions'
+        )
+      }
+
+      setPredictions(
+        Array.isArray(result.data) ? result.data : []
+      )
+    } catch (err) {
+      console.error('Predictions fetch error:', err)
+      setError(err.message || 'Something went wrong')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchPredictions()
+  }, [fetchPredictions])
+
+  function formatValue(value, unit = '') {
+    if (value === null || value === undefined) return 'N/A'
+
+    const number = Number(value)
+
+    if (!Number.isFinite(number)) return 'N/A'
+
+    return `${number}${unit}`
+  }
+
+  function formatProbability(value) {
+    if (value === null || value === undefined) return 'N/A'
+
+    const number = Number(value)
+
+    if (!Number.isFinite(number)) return 'N/A'
+
+    return `${(number * 100).toFixed(2)}%`
+  }
+
   return (
-    <>
+    <div className="admin-page">
       <h1>Landslide Predictions</h1>
-      <p>Sample risk predictions generated from rainfall, terrain, and soil data.</p>
+
+      <p>
+        Risk prediction records stored from rainfall, terrain, and soil data.
+      </p>
 
       <section>
-        <h2>Current prediction results</h2>
+        <div className="alert-section-header">
+          <h2>Current prediction results ({predictions.length})</h2>
 
-        <div className="prediction-list">
-          {predictions.map((prediction) => (
-            <article className="prediction-card" key={prediction.location}>
-              <div>
-                <h3>{prediction.location}</h3>
-                <p>
-                  Rainfall: {prediction.rainfall} · Soil moisture:{' '}
-                  {prediction.soilMoisture} · Slope: {prediction.slope}
-                </p>
-              </div>
-
-              <div className="prediction-score">
-                <span>ML probability</span>
-                <strong>{prediction.probability}</strong>
-              </div>
-
-              <span className={`risk-label ${prediction.risk.toLowerCase()}`}>
-                {prediction.risk} risk
-              </span>
-            </article>
-          ))}
+          <button
+            type="button"
+            onClick={fetchPredictions}
+            disabled={loading}
+          >
+            {loading ? 'Refreshing...' : 'Refresh Predictions'}
+          </button>
         </div>
+
+        {loading && <p>Loading predictions...</p>}
+
+        {error && (
+          <div className="reports-error">
+            <p>{error}</p>
+            <button type="button" onClick={fetchPredictions}>
+              Retry
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && predictions.length === 0 && (
+          <p>No prediction records available.</p>
+        )}
+
+        {!loading && !error && predictions.length > 0 && (
+          <div className="prediction-list">
+            {predictions.map((prediction) => (
+              <article className="prediction-card" key={prediction.id}>
+                <div>
+                  <h3>{prediction.district}</h3>
+
+                  <p>
+                    Rainfall: {formatValue(prediction.rainfall_24h, ' mm')}
+                    {' · '}
+                    Soil moisture: {formatValue(prediction.soil_moisture, '%')}
+                    {' · '}
+                    Slope: {formatValue(prediction.slope, '°')}
+                  </p>
+
+                  <small>
+                    Recorded:{' '}
+                    {prediction.predicted_at
+                      ? new Date(prediction.predicted_at).toLocaleString()
+                      : 'Date unavailable'}
+                  </small>
+                </div>
+
+                <div className="prediction-score">
+                  <span>Risk probability</span>
+                  <strong>
+                    {formatProbability(prediction.probability)}
+                  </strong>
+                </div>
+
+                <span
+                  className={`risk-label ${(prediction.risk_level || 'Moderate').toLowerCase()}`}
+                >
+                  {prediction.risk_level || 'Unknown'} risk
+                </span>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
-    </>
+    </div>
   )
 }
 

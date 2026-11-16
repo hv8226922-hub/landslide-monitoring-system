@@ -28,13 +28,50 @@ export async function getAlerts(request, response) {
 export async function createAlert(request, response) {
   const { title, district, riskLevel, message } = request.body
 
-  if (!title || !district || !riskLevel || !message) {
+  // Validate input types
+  if (
+    typeof title !== 'string' ||
+    typeof district !== 'string' ||
+    typeof riskLevel !== 'string' ||
+    typeof message !== 'string'
+  ) {
+    return response.status(400).json({
+      success: false,
+      message: 'Invalid alert data',
+    })
+  }
+
+  // Remove unnecessary spaces
+  const cleanTitle = title.trim()
+  const cleanDistrict = district.trim()
+  const cleanMessage = message.trim()
+
+  // Required field validation
+  if (
+    !cleanTitle ||
+    !cleanDistrict ||
+    !riskLevel ||
+    !cleanMessage
+  ) {
     return response.status(400).json({
       success: false,
       message: 'Title, district, risk level and message are required',
     })
   }
 
+  // Length validation according to database schema
+  if (
+    cleanTitle.length > 200 ||
+    cleanDistrict.length > 120 ||
+    cleanMessage.length > 5000
+  ) {
+    return response.status(400).json({
+      success: false,
+      message: 'Alert input exceeds the allowed length',
+    })
+  }
+
+  // Risk level validation
   const allowedLevels = ['Low', 'Moderate', 'High', 'Critical']
 
   if (!allowedLevels.includes(riskLevel)) {
@@ -51,7 +88,7 @@ export async function createAlert(request, response) {
         VALUES ($1, $2, $3, $4)
         RETURNING *
       `,
-      [title.trim(), district.trim(), riskLevel, message.trim()]
+      [cleanTitle, cleanDistrict, riskLevel, cleanMessage]
     )
 
     return response.status(201).json({
@@ -74,14 +111,18 @@ export async function updateAlertStatus(request, response) {
   const { id } = request.params
   const { status } = request.body
 
-  if (!/^\d+$/.test(id)) {
+  // Validate alert ID
+  if (!/^[1-9]\d*$/.test(id)) {
     return response.status(400).json({
       success: false,
       message: 'Invalid alert ID',
     })
   }
 
-  if (!['Active', 'Acknowledged', 'Resolved'].includes(status)) {
+  // Validate status
+  const allowedStatuses = ['Active', 'Acknowledged', 'Resolved']
+
+  if (!allowedStatuses.includes(status)) {
     return response.status(400).json({
       success: false,
       message: 'Invalid alert status',
@@ -125,7 +166,8 @@ export async function updateAlertStatus(request, response) {
 export async function deleteAlert(request, response) {
   const { id } = request.params
 
-  if (!/^\d+$/.test(id)) {
+  // Validate alert ID
+  if (!/^[1-9]\d*$/.test(id)) {
     return response.status(400).json({
       success: false,
       message: 'Invalid alert ID',

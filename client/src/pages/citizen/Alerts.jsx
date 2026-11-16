@@ -1,45 +1,93 @@
-const alerts = [
-  {
-    level: 'High',
-    title: 'Heavy rainfall warning',
-    location: 'Dima Hasao, Assam',
-    message:
-      'Avoid mountain roads and steep slopes until the rainfall intensity decreases.',
-    issued: 'Issued 30 minutes ago',
-  },
-  {
-    level: 'Moderate',
-    title: 'Slope movement watch',
-    location: 'East Khasi Hills, Meghalaya',
-    message:
-      'Stay alert for cracks, falling rocks, or changes near hillside roads.',
-    issued: 'Issued 2 hours ago',
-  },
-]
+
+import { useEffect, useState } from 'react'
+
+const API_URL = 'http://127.0.0.1:5000/api/alerts'
 
 function CitizenAlerts() {
+  const [alerts, setAlerts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  async function fetchAlerts() {
+    try {
+      setLoading(true)
+      setError('')
+
+      const token = localStorage.getItem('token')
+
+      const response = await fetch(API_URL, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Could not fetch alerts')
+      }
+
+      setAlerts(result.data || [])
+    } catch (err) {
+      setError(err.message || 'Something went wrong')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchAlerts()
+  }, [])
+
+  function formatDate(date) {
+    if (!date) return 'Date unavailable'
+
+    return new Date(date).toLocaleString()
+  }
+
   return (
     <div className="citizen-page">
       <h1>Safety Alerts</h1>
       <p>Current warnings and safety advisories for monitored regions.</p>
 
-      <div className="citizen-alert-list">
-        {alerts.map((alert) => (
-          <article
-            className={`citizen-alert-card ${alert.level.toLowerCase()}`}
-            key={alert.title}
-          >
-            <span className={`risk-label ${alert.level.toLowerCase()}`}>
-              {alert.level} risk
-            </span>
+      {loading && <p>Loading safety alerts...</p>}
 
-            <h2>{alert.title}</h2>
-            <strong>{alert.location}</strong>
-            <p>{alert.message}</p>
-            <small>{alert.issued}</small>
-          </article>
-        ))}
-      </div>
+      {error && (
+        <div>
+          <p>{error}</p>
+          <button type="button" onClick={fetchAlerts}>
+            Retry
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && alerts.length === 0 && (
+        <p>No active alerts available.</p>
+      )}
+
+      {!loading && !error && alerts.length > 0 && (
+        <div className="citizen-alert-list">
+          {alerts.map((alert) => (
+            <article
+              className={`citizen-alert-card ${(alert.risk_level || 'Moderate').toLowerCase()}`}
+              key={alert.id}
+            >
+              <span
+                className={`risk-label ${(alert.risk_level || 'Moderate').toLowerCase()}`}
+              >
+                {alert.risk_level} risk
+              </span>
+
+              <h2>{alert.title}</h2>
+              <strong>{alert.district}</strong>
+              <p>{alert.message}</p>
+              <small>
+                Issued: {formatDate(alert.created_at)}
+              </small>
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

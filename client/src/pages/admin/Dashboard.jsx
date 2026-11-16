@@ -10,51 +10,66 @@ import RainfallChart from '../../components/RainfallChart.jsx'
 import ReportForm from '../../components/ReportForm.jsx'
 
 const API_URL = 'http://127.0.0.1:5000/api/reports'
+const RISK_API_URL = 'http://127.0.0.1:5000/api/risk'
+const ALERT_API_URL = 'http://127.0.0.1:5000/api/alerts'
 
-// Dashboard location data
-const locations = [
-  {
-    name: 'Uttarkashi',
-    risk: 'High',
-    rainfall: 'Heavy rainfall',
-    status: 'Monitoring',
-  },
-  {
-    name: 'Chamoli',
-    risk: 'Moderate',
-    rainfall: 'Moderate rainfall',
-    status: 'Monitoring',
-  },
-  {
-    name: 'Rudraprayag',
-    risk: 'Low',
-    rainfall: 'Normal rainfall',
-    status: 'Stable',
-  },
-]
+function getAuthToken() {
+  const token = localStorage.getItem('token')
 
-// Dashboard alert data
-const alerts = [
-  {
-    title: 'Weather Monitoring',
-    location: 'Uttarkashi',
-    message: 'Continue monitoring rainfall and local conditions.',
-    time: 'Monitoring',
-    level: 'High',
-  },
-  {
-    title: 'Risk Assessment',
-    location: 'Chamoli',
-    message: 'Regular monitoring recommended in this area.',
-    time: 'Monitoring',
-    level: 'Moderate',
-  },
-]
+  if (!token) {
+    throw new Error('Please login again')
+  }
+
+  return token
+}
+
+function formatAlertDate(date) {
+  if (!date) return 'Date unavailable'
+
+  const parsedDate = new Date(date)
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return 'Date unavailable'
+  }
+
+  return parsedDate.toLocaleString('en-IN')
+}
+
+function getLatestByDistrict(records) {
+  const latestRecords = new Map()
+
+  records.forEach((record) => {
+    const district = record.district?.trim()
+
+    if (!district) return
+
+    const existing = latestRecords.get(district)
+
+    const currentTime = new Date(record.predicted_at).getTime()
+    const existingTime = existing
+      ? new Date(existing.predicted_at).getTime()
+      : -Infinity
+
+    if (!existing || currentTime > existingTime) {
+      latestRecords.set(district, record)
+    }
+  })
+
+  return Array.from(latestRecords.values())
+}
 
 function Dashboard() {
   const [reports, setReports] = useState([])
   const [reportsLoading, setReportsLoading] = useState(true)
   const [reportsError, setReportsError] = useState('')
+
+  const [riskLocations, setRiskLocations] = useState([])
+  const [riskLoading, setRiskLoading] = useState(true)
+  const [riskError, setRiskError] = useState('')
+
+  const [alerts, setAlerts] = useState([])
+  const [alertsLoading, setAlertsLoading] = useState(true)
+  const [alertsError, setAlertsError] = useState('')
 
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
@@ -62,25 +77,29 @@ function Dashboard() {
   const [updatingReportId, setUpdatingReportId] = useState(null)
   const [deletingReportId, setDeletingReportId] = useState(null)
 
-  // Fetch reports from backend
+  // Fetch reports
   const fetchReports = useCallback(async () => {
     try {
       setReportsLoading(true)
       setReportsError('')
 
-      const response = await fetch(API_URL)
+      const token = getAuthToken()
 
-      if (!response.ok) {
-        throw new Error('Unable to fetch reports')
-      }
+      const response = await fetch(API_URL, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: 'no-store',
+      })
 
       const result = await response.json()
 
-      if (result.success) {
-        setReports(result.data || [])
-      } else {
-        throw new Error(result.message || 'Failed to load reports')
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Unable to fetch reports')
       }
+
+      setReports(Array.isArray(result.data) ? result.data : [])
     } catch (error) {
       console.error('Fetch reports error:', error)
       setReportsError(error.message || 'Something went wrong')
@@ -89,19 +108,124 @@ function Dashboard() {
     }
   }, [])
 
+  // Fetch latest risk prediction for each district
+  const fetchRiskLocations = useCallback(async () => {
+    try {
+      setRiskLoading(true)
+      setRiskError('')
+
+      const token = getAuthToken()
+
+      const response = await fetch(RISK_API_URL, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: 'no-store',
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || 'Unable to fetch risk locations'
+        )
+      }
+
+      const latestRecords = getLatestByDistrict(
+        Array.isArray(result.data) ? result.data : []
+      )
+
+      const formattedLocations = latestRecords.map((record) => {
+        const probability = Number(record.probability)
+
+        return {
+          id: record.id,
+          district: record.district,
+          risk: record.risk_level,
+          score: Number.isFinite(probability)
+            ? Number((probability * 100).toFixed(1))
+            : null,
+          rainfall:
+            record.rainfall_24h !== null &&
+            record.rainfall_24h !== undefined
+              ? `${record.rainfall_24h} mm / 24h`
+              : 'Rainfall unavailable',
+          status: 'Stored record',
+          predictedAt: record.predicted_at,
+        }
+      })
+
+      setRiskLocations(formattedLocations)
+    } catch (error) {
+      console.error('Fetch risk locations error:', error)
+      setRiskError(error.message || 'Unable to fetch risk locations')
+    } finally {
+      setRiskLoading(false)
+    }
+  }, [])
+
+  // Fetch alerts
+  const fetchAlerts = useCallback(async () => {
+    try {
+      setAlertsLoading(true)
+      setAlertsError('')
+
+      const token = getAuthToken()
+
+      const response = await fetch(ALERT_API_URL, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: 'no-store',
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Unable to fetch alerts')
+      }
+
+      const formattedAlerts = (
+        Array.isArray(result.data) ? result.data : []
+      ).map((alert) => ({
+        id: alert.id,
+        title: alert.title,
+        location: alert.district,
+        message: alert.message,
+        level: alert.risk_level || 'Moderate',
+        status: alert.status || 'Active',
+        time: `${formatAlertDate(alert.created_at)} · ${alert.status || 'Active'}`,
+      }))
+
+      setAlerts(formattedAlerts)
+    } catch (error) {
+      console.error('Fetch alerts error:', error)
+      setAlertsError(error.message || 'Unable to fetch alerts')
+    } finally {
+      setAlertsLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     fetchReports()
-  }, [fetchReports])
+    fetchRiskLocations()
+    fetchAlerts()
+  }, [fetchReports, fetchRiskLocations, fetchAlerts])
 
   // Update report status
   const updateReportStatus = async (id, newStatus) => {
     try {
       setUpdatingReportId(id)
 
+      const token = getAuthToken()
+
       const response = await fetch(`${API_URL}/${id}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           status: newStatus,
@@ -110,15 +234,13 @@ function Dashboard() {
 
       const result = await response.json()
 
-      if (!response.ok || !result.success) {
+      if (!response.ok || !result.success || !result.data) {
         throw new Error(result.message || 'Status update failed')
       }
 
       setReports((previousReports) =>
         previousReports.map((report) =>
-          report.id === id
-            ? { ...report, status: newStatus }
-            : report
+          report.id === id ? result.data : report
         )
       )
     } catch (error) {
@@ -140,8 +262,13 @@ function Dashboard() {
     try {
       setDeletingReportId(id)
 
+      const token = getAuthToken()
+
       const response = await fetch(`${API_URL}/${id}`, {
         method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       })
 
       const result = await response.json()
@@ -167,10 +294,12 @@ function Dashboard() {
       const search = searchTerm.toLowerCase().trim()
 
       const matchesSearch =
-        report.location?.toLowerCase().includes(search) ||
-        report.incident_type?.toLowerCase().includes(search) ||
-        report.description?.toLowerCase().includes(search) ||
-        String(report.id).includes(search)
+        !search ||
+        String(report.id).includes(search) ||
+        (report.reporter_name || '').toLowerCase().includes(search) ||
+        (report.location || '').toLowerCase().includes(search) ||
+        (report.incident_type || '').toLowerCase().includes(search) ||
+        (report.description || '').toLowerCase().includes(search)
 
       const matchesStatus =
         statusFilter === 'All' || report.status === statusFilter
@@ -179,7 +308,7 @@ function Dashboard() {
     })
   }, [reports, searchTerm, statusFilter])
 
-  // Live report metrics
+  // Report metrics
   const reportMetrics = [
     {
       title: 'Total Reports',
@@ -207,24 +336,41 @@ function Dashboard() {
     },
   ]
 
+  const databaseConnected = !reportsError && !riskError && !alertsError
+
   return (
     <div className="dashboard-page">
       {/* Dashboard Header */}
-      <div className="page-header">
+      <div className="page-header dashboard-header">
         <div>
+          <span className="dashboard-eyebrow">
+            TERRAWATCH ADMINISTRATION
+          </span>
+
           <h1>Dashboard Overview</h1>
-          <p>Welcome to TerraWatch monitoring dashboard.</p>
+
+          <p>
+            Monitor community reports, geographical risk records
+            and weather information from one place.
+          </p>
+        </div>
+
+        <div className="dashboard-header-status">
+          <span className="dashboard-status-dot"></span>
+          {databaseConnected
+            ? 'API Data Loaded'
+            : 'Some API Requests Failed'}
         </div>
       </div>
 
-      {/* Live Report Metrics */}
+      {/* Report Metrics */}
       <section className="dashboard-metrics">
         {reportMetrics.map((metric) => (
           <MetricCard key={metric.title} {...metric} />
         ))}
       </section>
 
-      {/* Map and Rainfall */}
+      {/* Risk Map and Rainfall */}
       <section className="dashboard-grid">
         <div className="dashboard-panel">
           <h2>Risk Map</h2>
@@ -239,24 +385,89 @@ function Dashboard() {
 
       {/* Priority Locations */}
       <section className="dashboard-section">
-        <h2>Priority Locations</h2>
+        <div className="section-heading">
+          <div>
+            <h2>Priority Locations</h2>
+            <p>Latest risk record for each district.</p>
+          </div>
 
-        <div className="location-grid">
-          {locations.map((location, index) => (
-            <LocationCard key={index} {...location} />
-          ))}
+          <button
+            type="button"
+            className="refresh-reports-btn"
+            onClick={fetchRiskLocations}
+            disabled={riskLoading}
+          >
+            {riskLoading ? 'Refreshing...' : 'Refresh Locations'}
+          </button>
         </div>
+
+        <p className="reports-message">
+          These are stored risk records, not verified measurements
+          or live ML-generated predictions.
+        </p>
+
+        {riskLoading ? (
+          <p className="reports-message">
+            Loading priority locations...
+          </p>
+        ) : riskError ? (
+          <div className="reports-error">
+            <p>{riskError}</p>
+            <button type="button" onClick={fetchRiskLocations}>
+              Try Again
+            </button>
+          </div>
+        ) : riskLocations.length > 0 ? (
+          <div className="location-grid">
+            {riskLocations.map((location) => (
+              <LocationCard key={location.id} {...location} />
+            ))}
+          </div>
+        ) : (
+          <div className="no-reports">
+            No risk prediction records available yet.
+          </div>
+        )}
       </section>
 
       {/* Recent Alerts */}
       <section className="dashboard-section">
-        <h2>Recent Alerts</h2>
+        <div className="section-heading">
+          <div>
+            <h2>Recent Alerts</h2>
+            <p>Alerts retrieved from the database.</p>
+          </div>
 
-        <div className="alerts-list">
-          {alerts.map((alert, index) => (
-            <AlertCard key={index} {...alert} />
-          ))}
+          <button
+            type="button"
+            className="refresh-reports-btn"
+            onClick={fetchAlerts}
+            disabled={alertsLoading}
+          >
+            {alertsLoading ? 'Refreshing...' : 'Refresh Alerts'}
+          </button>
         </div>
+
+        {alertsLoading ? (
+          <p className="reports-message">Loading alerts...</p>
+        ) : alertsError ? (
+          <div className="reports-error">
+            <p>{alertsError}</p>
+            <button type="button" onClick={fetchAlerts}>
+              Try Again
+            </button>
+          </div>
+        ) : alerts.length > 0 ? (
+          <div className="alerts-list">
+            {alerts.map((alert) => (
+              <AlertCard key={alert.id} {...alert} />
+            ))}
+          </div>
+        ) : (
+          <div className="no-reports">
+            No alerts available yet.
+          </div>
+        )}
       </section>
 
       {/* Community Report Form */}
@@ -288,7 +499,7 @@ function Dashboard() {
           <input
             type="text"
             className="report-search"
-            placeholder="Search by ID, location, type or description..."
+            placeholder="Search by ID, reporter, location, type or description..."
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
           />
@@ -331,6 +542,15 @@ function Dashboard() {
         )}
 
         {/* Reports Table */}
+        <div className="reports-results-info">
+          <div>
+            <strong>{filteredReports.length}</strong>
+            <span> reports displayed</span>
+          </div>
+
+          <span>Total records: {reports.length}</span>
+        </div>
+
         {!reportsLoading && !reportsError && (
           <>
             {filteredReports.length > 0 ? (
@@ -353,9 +573,7 @@ function Dashboard() {
                     {filteredReports.map((report) => (
                       <tr key={report.id}>
                         <td>#{report.id}</td>
-
                         <td>{report.location}</td>
-
                         <td>{report.incident_type || 'Other'}</td>
 
                         <td>
@@ -399,7 +617,7 @@ function Dashboard() {
                           {report.created_at
                             ? new Date(
                                 report.created_at
-                              ).toLocaleDateString()
+                              ).toLocaleDateString('en-IN')
                             : 'N/A'}
                         </td>
 

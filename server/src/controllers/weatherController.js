@@ -26,13 +26,19 @@ export async function getWeatherRecords(request, response) {
 
 // CREATE weather record
 export async function createWeatherRecord(request, response) {
-  const { district, rainfall_24h, humidity, temperature } = request.body
+  const {
+    district,
+    rainfall_24h,
+    humidity,
+    temperature,
+  } = request.body
 
   const rainfall = Number(rainfall_24h)
 
   if (
     typeof district !== 'string' ||
     !district.trim() ||
+    district.length > 120 ||
     rainfall_24h === undefined ||
     rainfall_24h === null ||
     rainfall_24h === '' ||
@@ -51,6 +57,7 @@ export async function createWeatherRecord(request, response) {
     }
 
     const number = Number(value)
+
     return Number.isFinite(number) ? number : NaN
   }
 
@@ -59,8 +66,10 @@ export async function createWeatherRecord(request, response) {
 
   if (
     Number.isNaN(humidityValue) ||
-    (humidityValue !== null &&
-      (humidityValue < 0 || humidityValue > 100)) ||
+    (
+      humidityValue !== null &&
+      (humidityValue < 0 || humidityValue > 100)
+    ) ||
     Number.isNaN(temperatureValue)
   ) {
     return response.status(400).json({
@@ -104,7 +113,7 @@ export async function createWeatherRecord(request, response) {
 export async function deleteWeatherRecord(request, response) {
   const { id } = request.params
 
-  if (!/^\d+$/.test(id)) {
+  if (!/^\d+$/.test(id) || Number(id) <= 0) {
     return response.status(400).json({
       success: false,
       message: 'Invalid weather record ID',

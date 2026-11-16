@@ -4,22 +4,69 @@ import { Router } from 'express'
 import {
   createReport,
   getReports,
+  getMyReports,
+  getReportById,
   updateReportStatus,
+  assignReportOfficer,
   deleteReport,
 } from '../controllers/reportsController.js'
 
+import {
+  authenticateToken,
+  authorizeRoles,
+} from '../middleware/authMiddleware.js'
+
 const router = Router()
 
-// Get all reports
-router.get('/', getReports)
+// All report routes require authentication
+router.use(authenticateToken)
 
-// Create new report
-router.post('/', createReport)
+// Citizen: View only their own reports
+router.get(
+  '/my-reports',
+  authorizeRoles('citizen'),
+  getMyReports
+)
 
-// Update report status
-router.patch('/:id/status', updateReportStatus)
+// Admin and Officer: View all reports
+router.get(
+  '/',
+  authorizeRoles('admin', 'officer'),
+  getReports
+)
+// Admin and Officer: View a single report
+router.get(
+  '/:id',
+  authorizeRoles('admin', 'officer'),
+  getReportById
+)
 
-// Delete report from database
-router.delete('/:id', deleteReport)
+// Admin, Officer and Citizen: Submit reports
+router.post(
+  '/',
+  authorizeRoles('admin', 'officer', 'citizen'),
+  createReport
+)
+
+// Admin and Officer: Update report status
+router.patch(
+  '/:id/status',
+  authorizeRoles('admin', 'officer'),
+  updateReportStatus
+)
+
+// Only Admin: Assign or reassign an officer
+router.patch(
+  '/:id/assign',
+  authorizeRoles('admin'),
+  assignReportOfficer
+)
+
+// Only Admin: Delete reports
+router.delete(
+  '/:id',
+  authorizeRoles('admin'),
+  deleteReport
+)
 
 export default router

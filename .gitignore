@@ -12,3 +12,5 @@ ml-service/models/*
 !ml-service/models/.gitkeep
 server/uploads/*
 !server/uploads/.gitkeep
+# Backup archives
+*.zip

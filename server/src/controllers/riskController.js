@@ -112,3 +112,46 @@ export async function createRiskPrediction(request, response) {
     })
   }
 }
+
+// DELETE risk prediction record
+export async function deleteRiskPrediction(request, response) {
+  const { id } = request.params
+
+  if (!/^\d+$/.test(id) || Number(id) <= 0) {
+    return response.status(400).json({
+      success: false,
+      message: 'Invalid risk prediction ID',
+    })
+  }
+
+  try {
+    const result = await pool.query(
+      `
+        DELETE FROM risk_predictions
+        WHERE id = $1
+        RETURNING *
+      `,
+      [Number(id)]
+    )
+
+    if (result.rowCount === 0) {
+      return response.status(404).json({
+        success: false,
+        message: 'Risk prediction record not found',
+      })
+    }
+
+    return response.status(200).json({
+      success: true,
+      message: 'Risk prediction deleted successfully',
+      data: result.rows[0],
+    })
+  } catch (error) {
+    console.error('Could not delete risk prediction:', error)
+
+    return response.status(500).json({
+      success: false,
+      message: 'Could not delete risk prediction',
+    })
+  }
+}

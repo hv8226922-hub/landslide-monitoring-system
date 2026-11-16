@@ -1,7 +1,15 @@
+
 import pg from 'pg'
 import dotenv from 'dotenv'
 
-dotenv.config()
+dotenv.config({
+  path: new URL(
+    process.env.NODE_ENV === 'test'
+      ? '../../.env.test'
+      : '../../.env',
+    import.meta.url
+  ),
+})
 
 const { Pool } = pg
 
